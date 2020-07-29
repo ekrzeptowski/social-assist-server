@@ -1,10 +1,6 @@
-import fs from "fs";
-import { join } from "path";
 import mongoose from "mongoose";
-import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
-import Joi from "joi";
-import { isValidUrl } from "../utils/utils";
+import aggregatePaginate from "mongoose-aggregate-paginate-v2";
 
 const { Schema } = mongoose;
 
@@ -12,23 +8,23 @@ const userSchema = new Schema(
   {
     provider: {
       type: String,
-      required: true
+      required: true,
     },
     username: {
       type: String,
       unique: true,
       required: [true, "can't be blank"],
-      index: true
+      index: true,
     },
     email: {
       type: String,
-      lowercase: true
+      lowercase: true,
     },
     password: {
       type: String,
       trim: true,
       minlength: 6,
-      maxlength: 60
+      maxlength: 60,
     },
     token: Object,
     name: String,
@@ -38,29 +34,34 @@ const userSchema = new Schema(
     profileImageUrl: String,
     twitterId: String,
     fetchedAt: Date,
-    followers: Array,
+    followers: [{ type: String, ref: "TwitterUser" }],
     totalFollowers: Number,
-    unfollowers: [{ userId: String, date: Date }],
-    messages: [{ type: mongoose.Schema.Types.ObjectId, ref: "Message" }]
+    settings: { debug: Boolean, debugId: String },
+    newFollowers: [
+      {
+        user: { type: String, ref: "TwitterUser" },
+        date: { type: Date, default: Date.now },
+      },
+    ],
+    unfollowers: [
+      {
+        user: { type: String, ref: "TwitterUser" },
+        date: { type: Date, default: Date.now },
+      },
+    ],
+    following: [{ type: String, ref: "TwitterUser" }],
+    totalFollowing: Number,
+    followersHistory: [
+      {
+        date: { type: Date, default: Date.now },
+        followers: Number,
+      },
+    ],
   },
   { timestamps: true }
 );
 
-console.log(join(__dirname, "../..", process.env.IMAGES_FOLDER_PATH));
-
-userSchema.methods.toJSON = function() {
-  // if not exists avatar1 default
-  // const absoluteAvatarFilePath = `${join(
-  //   __dirname,
-  //   "../..",
-  //   process.env.IMAGES_FOLDER_PATH
-  // )}${this.avatar}`;
-  // const avatar = isValidUrl(this.avatar)
-  //   ? this.avatar
-  //   : fs.existsSync(absoluteAvatarFilePath)
-  //   ? `${process.env.IMAGES_FOLDER_PATH}${this.avatar}`
-  //   : `${process.env.IMAGES_FOLDER_PATH}avatar2.jpg`;
-
+userSchema.methods.toJSON = function () {
   return {
     id: this._id,
     provider: this.provider,
@@ -70,7 +71,8 @@ userSchema.methods.toJSON = function() {
     name: this.name,
     role: this.role,
     createdAt: this.createdAt,
-    updatedAt: this.updatedAt
+    updatedAt: this.updatedAt,
+    settings: this.settings,
   };
 };
 
@@ -79,75 +81,20 @@ const secretOrKey = isProduction
   ? process.env.JWT_SECRET_PROD
   : process.env.JWT_SECRET_DEV;
 
-userSchema.methods.generateJWT = function() {
+userSchema.methods.generateJWT = function () {
   const token = jwt.sign(
     {
       expiresIn: "12h",
       id: this._id,
       provider: this.provider,
-      email: this.email
+      email: this.email,
     },
     secretOrKey
   );
   return token;
 };
 
-userSchema.methods.registerUser = (newUser, callback) => {
-  bcrypt.genSalt(10, (err, salt) => {
-    bcrypt.hash(newUser.password, salt, (errh, hash) => {
-      if (err) {
-        console.log(err);
-      }
-      // set pasword to hash
-      newUser.password = hash;
-      newUser.save(callback);
-    });
-  });
-};
-
-userSchema.methods.comparePassword = function(candidatePassword, callback) {
-  bcrypt.compare(candidatePassword, this.password, (err, isMatch) => {
-    if (err) return callback(err);
-    callback(null, isMatch);
-  });
-};
-
-// const delay = (t, ...vs) => new Promise(r => setTimeout(r, t, ...vs)) or util.promisify(setTimeout)
-
-export async function hashPassword(password) {
-  const saltRounds = 10;
-
-  const hashedPassword = await new Promise((resolve, reject) => {
-    bcrypt.hash(password, saltRounds, function(err, hash) {
-      if (err) reject(err);
-      else resolve(hash);
-    });
-  });
-
-  return hashedPassword;
-}
-
-export const validateUser = user => {
-  const schema = {
-    avatar: Joi.any(),
-    name: Joi.string()
-      .min(2)
-      .max(30)
-      .required(),
-    username: Joi.string()
-      .min(2)
-      .max(20)
-      .regex(/^[a-zA-Z0-9_]+$/)
-      .required(),
-    password: Joi.string()
-      .min(6)
-      .max(20)
-      .allow("")
-      .allow(null)
-  };
-
-  return Joi.validate(user, schema);
-};
+userSchema.plugin(aggregatePaginate);
 
 const User = mongoose.model("User", userSchema);
 
