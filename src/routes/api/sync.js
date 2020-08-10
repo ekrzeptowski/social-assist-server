@@ -88,7 +88,12 @@ router.post("/", requireJwtAuth, async (req, res) => {
   // Forbid frequent syncs
   if (!user.fetchedAt || (new Date() - user.fetchedAt) / 36e5 > 12) {
     const twitterId = settings.debug ? settings.debugId : user.twitterId;
-    // const oldFollowers = await TwitterUser.find({ followingUsers: twitterId });
+    const oldFollowers = await TwitterUser.find(
+      {
+        followingUsers: twitterId,
+      },
+      { _id: 1 }
+    );
 
     const followers = await getFollowers(
       settings.debug ? settings.debugId : null
@@ -112,7 +117,7 @@ router.post("/", requireJwtAuth, async (req, res) => {
     );
 
     try {
-      user.totalFollowers = followers.length;
+      user.totalFollowers = await followers.length;
       user.followersHistory.push({
         date: Date.now(),
         followers: await followers.length,
@@ -121,10 +126,9 @@ router.post("/", requireJwtAuth, async (req, res) => {
       user.totalFollowing = following.length;
       user.fetchedAt = new Date();
 
-      const newUnfollowers = await TwitterUser.find({
-        _id: { $nin: followers },
-        followingUsers: twitterId,
-      });
+      const newUnfollowers = [...oldFollowers].filter(
+        (x) => !followers.includes(x.id)
+      );
 
       // console.log(newUnfollowers.length);
       // console.log(followers.length);
@@ -147,6 +151,13 @@ router.post("/", requireJwtAuth, async (req, res) => {
       for await (let id of followers) {
         const current = await TwitterUser.findById(id);
         if (current) {
+          // At least 7 days between twitter account data update
+          if (
+            !current.fetchedAt ||
+            (new Date() - current.fetchedAt) / 36e5 > 24 * 7
+          ) {
+            toFetch.push(id);
+          }
         } else {
           toFetch.push(id);
         }
@@ -196,10 +207,19 @@ router.post("/", requireJwtAuth, async (req, res) => {
               favourites_count: cuser.favourites_count,
               statuses_count: cuser.statuses_count,
               created_at: cuser.created_at,
+              fetchedAt: new Date(),
             });
           }
 
-          TwitterUser.insertMany(preparedUser);
+          TwitterUser.bulkWrite(
+            preparedUser.map((item) => ({
+              updateOne: {
+                filter: { _id: item._id },
+                update: { $set: item },
+                upsert: true,
+              },
+            }))
+          );
           socket?.send(
             JSON.stringify({
               type: "SYNC",
@@ -214,7 +234,7 @@ router.post("/", requireJwtAuth, async (req, res) => {
       }
 
       // Save followers
-      followers.map(async (id) => {
+      for await (let id of followers) {
         let current = await TwitterUser.findById(id);
         if (current) {
           if (!current.followingUsers) {
@@ -228,10 +248,10 @@ router.post("/", requireJwtAuth, async (req, res) => {
             current.save();
           }
         }
-      });
+      }
 
       // Save unfollowers
-      newUnfollowers.map(async (id) => {
+      for await (let id of newUnfollowers) {
         const current = await TwitterUser.findById(id);
         if (current) {
           const temp = current.followingUsers;
@@ -239,7 +259,7 @@ router.post("/", requireJwtAuth, async (req, res) => {
 
           current.save();
         }
-      });
+      }
 
       socket?.send(
         JSON.stringify({

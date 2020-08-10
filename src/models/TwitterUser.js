@@ -16,6 +16,7 @@ const userSchema = new Schema(
     statuses_count: Number,
     created_at: Date,
     followingUsers: { type: Array, unique: true },
+    fetchedAt: Date,
   },
   { timestamps: true }
 );
