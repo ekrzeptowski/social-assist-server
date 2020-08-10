@@ -1,4 +1,5 @@
 import mongoose from "mongoose";
+import aggregatePaginate from "mongoose-aggregate-paginate-v2";
 
 const { Schema } = mongoose;
 
@@ -20,6 +21,8 @@ const userSchema = new Schema(
   },
   { timestamps: true }
 );
+
+userSchema.plugin(aggregatePaginate);
 
 const TwitterUser = mongoose.model("TwitterUser", userSchema);
 
