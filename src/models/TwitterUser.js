@@ -18,6 +18,7 @@ const userSchema = new Schema(
     created_at: Date,
     followingUsers: { type: Array, unique: true },
     fetchedAt: Date,
+    suspended: Boolean,
   },
   { timestamps: true }
 );

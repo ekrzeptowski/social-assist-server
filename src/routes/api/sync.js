@@ -48,7 +48,7 @@ router.post("/", requireJwtAuth, async (req, res) => {
           cursor = res.next_cursor_str;
           followers.push(res.ids);
           if (cursor > 0) {
-            await timer(6000);
+            await timer(60000);
             return resolve(getFollowers(user_id, cursor, followers));
           } else {
             return resolve([].concat(...followers));
@@ -105,6 +105,7 @@ router.post("/", requireJwtAuth, async (req, res) => {
         message: "FETCHED_FOLLOWERS_IDS",
       })
     );
+    console.log("Followers: " + followers.length);
     const following = await getFriends(
       settings.debug ? settings.debugId : null
     );
@@ -115,25 +116,60 @@ router.post("/", requireJwtAuth, async (req, res) => {
         message: "FETCHED_FOLLOWING_IDS",
       })
     );
+    console.log("Following: " + following.length);
 
     try {
       user.totalFollowers = await followers.length;
+      console.log("TFollowers: " + user.totalFollowers);
       user.followersHistory.push({
         date: Date.now(),
         followers: await followers.length,
       });
       user.following = await following;
       user.totalFollowing = following.length;
+      console.log("TFollowing: " + user.totalFollowing);
       user.fetchedAt = new Date();
 
       const newUnfollowers = [...oldFollowers].filter(
         (x) => !followers.includes(x.id)
       );
 
-      // console.log(newUnfollowers.length);
-      // console.log(followers.length);
+      console.log("Old followers: " + oldFollowers.length);
 
-      newUnfollowers.map((id) => user.unfollowers.push({ user: id }));
+      console.log("New unfollowers: " + newUnfollowers.length);
+
+      for await (let id of newUnfollowers) {
+        user.unfollowers.push({ user: id });
+        try {
+          console.log(id.id);
+          const temp = await client.get("users/show", {
+            user_id: id.id,
+          });
+        } catch (err) {
+          console.log(err.errors);
+          if ("errors" in err) {
+            // Twitter API error
+            if (err.errors[0].code === 88) {
+              // rate limit exceeded
+              console.log(
+                "Rate limit will reset on",
+                new Date(err._headers.get("x-rate-limit-reset") * 1000)
+              );
+            } else if (err.errors[0].code === 50 || err.errors[0].code === 63) {
+              const suspendedUser = await TwitterUser.findById(id);
+              suspendedUser.suspended = true;
+              suspendedUser.save();
+            } else {
+            }
+          }
+          // some other kind of error, e.g. read-only API trying to POST}
+          else {
+            // non-API error, e.g. network problem or invalid JSON in response
+          }
+        }
+
+        await timer(1000);
+      }
 
       user.save();
       socket?.send(
@@ -210,6 +246,7 @@ router.post("/", requireJwtAuth, async (req, res) => {
               fetchedAt: new Date(),
             });
           }
+          console.log("Prepared users: " + preparedUser.length);
 
           TwitterUser.bulkWrite(
             preparedUser.map((item) => ({
