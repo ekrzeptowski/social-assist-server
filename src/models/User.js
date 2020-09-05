@@ -57,6 +57,7 @@ const userSchema = new Schema(
         followers: Number,
       },
     ],
+    widgets: [{ component: String, dependencies: Array, layout: Object }],
   },
   { timestamps: true }
 );
