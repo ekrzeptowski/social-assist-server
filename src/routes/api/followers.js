@@ -28,6 +28,44 @@ router.get("/", requireJwtAuth, async (req, res) => {
   }
 });
 
+router.get("/stats", requireJwtAuth, async (req, res) => {
+  const settings = req.user.settings;
+  try {
+    const notFollowingCount = await TwitterUser.countDocuments({
+      _id: { $nin: req.user.following },
+      followingUsers: settings.debug ? settings.debugId : req.user.twitterId,
+    });
+
+    const notFollowersCount = await User.aggregate([
+      {
+        $match: settings.debug
+          ? { twitterId: settings.debugId }
+          : { _id: req.user._id },
+      },
+      {
+        $lookup: {
+          from: "twitterusers",
+          localField: "following",
+          foreignField: "_id",
+          as: "followingUsers",
+        },
+      },
+      { $unwind: "$followingUsers" },
+      { $replaceRoot: { newRoot: "$followingUsers" } },
+      { $match: { followingUsers: { $ne: req.user.twitterId } } },
+      { $group: { _id: null, count: { $sum: 1 } } },
+      { $project: { _id: 0 } },
+    ]);
+
+    res.json({
+      notFollowingCount,
+      notFollowersCount: notFollowersCount[0].count,
+    });
+  } catch (err) {
+    res.status(500).json({ message: "Something went wrong." });
+  }
+});
+
 router.get("/following", requireJwtAuth, async (req, res) => {
   const settings = req.user.settings;
   try {
