@@ -266,4 +266,43 @@ router.get("/notfollowers", requireJwtAuth, async (req, res) => {
   }
 });
 
+router.get("/followingback", requireJwtAuth, async (req, res) => {
+  const settings = req.user.settings;
+  try {
+    const myAggregate = User.aggregate([
+      {
+        $match: settings.debug
+          ? { twitterId: settings.debugId }
+          : { _id: req.user._id },
+      },
+      {
+        $lookup: {
+          from: "twitterusers",
+          localField: "following",
+          foreignField: "_id",
+          as: "followingUsers",
+        },
+      },
+      { $unwind: "$followingUsers" },
+      { $replaceRoot: { newRoot: "$followingUsers" } },
+      { $match: { followingUsers: { $eq: req.user.twitterId } } },
+      {
+        $project: {
+          followingUsers: 0,
+        },
+      },
+    ]);
+    const user = await User.aggregatePaginate(myAggregate, {
+      sort: req.query.sort,
+      page: req.query.page,
+      limit: req.query.limit,
+      pagination: req.query.limit ? true : false,
+    });
+
+    res.json(user);
+  } catch (err) {
+    res.status(500).json({ message: "Something went wrong." });
+  }
+});
+
 export default router;
