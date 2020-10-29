@@ -16,7 +16,7 @@ const userSchema = new Schema(
     favourites_count: Number,
     statuses_count: Number,
     created_at: Date,
-    followingUsers: { type: Array, unique: true },
+    followingUsers: { type: Array, unique: true, index: true },
     fetchedAt: Date,
     suspended: Boolean,
   },
