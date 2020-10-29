@@ -19,7 +19,7 @@ const sessionParser = session({
   secret: process.env.COOKIE_KEY,
   resave: true,
   saveUninitialized: true,
-  cookie: { maxAge: 24 * 60 * 60 * 100 }
+  cookie: { maxAge: 24 * 60 * 60 * 100 },
 });
 app.use(sessionParser);
 
@@ -48,13 +48,13 @@ mongoose
     useNewUrlParser: true,
     useCreateIndex: true,
     useUnifiedTopology: true,
-    useFindAndModify: false
+    useFindAndModify: false,
   })
   .then(() => {
     console.log("MongoDB Connected...");
     // seedDb();
   })
-  .catch(err => console.log(err));
+  .catch((err) => console.log(err));
 
 // Use Routes
 app.use("/", routes);
@@ -76,7 +76,7 @@ if (isProduction) {
 
   const httpsOptions = {
     key: readFileSync(resolve(__dirname, "../security/cert.key")),
-    cert: readFileSync(resolve(__dirname, "../security/cert.pem"))
+    cert: readFileSync(resolve(__dirname, "../security/cert.pem")),
   };
 
   const server = https.createServer(httpsOptions, app).listen(port, () => {
@@ -89,7 +89,7 @@ if (isProduction) {
   let id = 0;
   let lookup = {};
   app.locals.lookup = lookup;
-  server.on("upgrade", function(request, socket, head) {
+  server.on("upgrade", function (request, socket, head) {
     sessionParser(request, {}, () => {
       if (!request.session?.passport?.user) {
         socket.write("HTTP/1.1 401 Unauthorized\r\n\r\n");
@@ -97,12 +97,17 @@ if (isProduction) {
         return;
       }
 
-      console.log("Session is parsed!");
-      console.log(request.session);
-
       wss.handleUpgrade(request, socket, head, function done(ws) {
         ws.id = request.session.passport.user;
-        lookup[ws.id] = ws;
+        if (lookup[ws.id]) {
+          lookup[ws.id].add(ws);
+        } else {
+          lookup[ws.id] = new Set();
+          lookup[ws.id].add(ws);
+        }
+        ws.on("close", () => {
+          lookup[ws.id].delete(ws);
+        });
       });
     });
   });
