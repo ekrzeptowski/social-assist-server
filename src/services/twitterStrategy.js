@@ -12,12 +12,12 @@ const twitterLogin = new TwitterStrategy(
   {
     consumerKey: process.env.TWITTER_CONSUMER_KEY,
     consumerSecret: process.env.TWITTER_CONSUMER_SECRET,
-    callbackURL: "/auth/twitter/redirect"
+    callbackURL: "/auth/twitter/redirect",
   },
   async (accessToken, tokenSecret, profile, done) => {
     // find current user in UserModel
     const currentUser = await User.findOne({
-      twitterId: profile._json.id_str
+      twitterId: profile._json.id_str,
     });
     // create new user if the database doesn't have this user
     if (!currentUser) {
@@ -27,19 +27,24 @@ const twitterLogin = new TwitterStrategy(
         username: profile._json.screen_name,
         name: profile._json.name,
         screenName: profile._json.screen_name,
-        token: {accessToken, tokenSecret},
+        token: { accessToken, tokenSecret },
         twitterId: profile._json.id_str,
-        profileImageUrl: profile._json.profile_image_url_https
+        profileImageUrl: profile._json.profile_image_url_https,
       }).save();
       if (newUser) {
         done(null, newUser);
       }
     } else {
-      currentUser.token = {accessToken, tokenSecret};
+      currentUser.token = { accessToken, tokenSecret };
+      currentUser.profileImageUrl = profile._json.profile_image_url_https;
+      currentUser.email = profile._json.name;
+      currentUser.username = profile._json.screen_name;
+      currentUser.name = profile._json.name;
+      currentUser.screenName = profile._json.screen_name;
       currentUser.save();
     }
     // console.log(token, tokenSecret, done);
-    
+
     done(null, currentUser);
   }
 );
@@ -53,10 +58,10 @@ passport.serializeUser((user, done) => {
 // deserialize the cookieUserId to user in the database
 passport.deserializeUser((id, done) => {
   User.findById(id)
-    .then(user => {
+    .then((user) => {
       done(null, user);
     })
-    .catch(e => {
+    .catch((e) => {
       done(new Error("Failed to deserialize an user"));
     });
 });
