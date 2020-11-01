@@ -77,19 +77,20 @@ export async function hydrateUsers(
         );
       });
     } catch (error) {
-      if ("errors" in e) {
+      if ("errors" in error) {
         // Twitter API error
-        if (e.errors[0].code === 88) {
+        if (error.errors[0].code === 88) {
           // rate limit exceeded
           let delta =
             users._headers.get("x-rate-limit-reset") * 1000 - Date.now();
           console.log(
             "Rate limit will reset on",
-            new Date(e._headers.get("x-rate-limit-reset") * 1000)
+            new Date(error._headers.get("x-rate-limit-reset") * 1000)
           );
           i--;
           await timer(delta);
         } else {
+          console.log(error);
         }
         // some other kind of error, e.g. read-only API trying to POST
       } else {
