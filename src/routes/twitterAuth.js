@@ -12,7 +12,7 @@ router.get("/login/success", (req, res) => {
       success: true,
       message: "user has successfully authenticated",
       user: req.user,
-      cookies: req.cookies
+      cookies: req.cookies,
     });
   }
 });
@@ -21,7 +21,7 @@ router.get("/login/success", (req, res) => {
 router.get("/login/failed", (req, res) => {
   res.status(401).json({
     success: false,
-    message: "user failed to authenticate."
+    message: "user failed to authenticate.",
   });
 });
 
@@ -31,7 +31,10 @@ router.get("/logout", (req, res) => {
   res.redirect(CLIENT_HOME_PAGE_URL);
 });
 
-const clientUrl = process.env.NODE_ENV === 'production' ? process.env.CLIENT_URL_PROD : process.env.CLIENT_URL_DEV;
+const clientUrl =
+  process.env.NODE_ENV === "production"
+    ? process.env.CLIENT_URL_PROD
+    : process.env.CLIENT_URL_DEV;
 
 // auth with twitter
 router.get("/twitter", passport.authenticate("twitter"));
@@ -41,16 +44,15 @@ router.get(
   "/twitter/redirect",
   passport.authenticate("twitter", {
     // successRedirect: CLIENT_HOME_PAGE_URL,
-    failureRedirect: "/auth/login/failed"
+    failureRedirect: "/auth/login/failed",
   }),
   (req, res) => {
-    console.log(req.user);
-    
+    // console.log(req.user);
+
     const token = req.user.generateJWT();
-    res.cookie('x-auth-cookie', token);
+    res.cookie("x-auth-cookie", token);
     res.redirect(clientUrl);
   }
 );
-
 
 export default router;
