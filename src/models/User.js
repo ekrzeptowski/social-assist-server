@@ -36,7 +36,11 @@ const userSchema = new Schema(
     fetchedAt: Date,
     followers: [{ type: String, ref: "TwitterUser" }],
     totalFollowers: Number,
-    settings: { debug: Boolean, debugId: String },
+    settings: {
+      debug: Boolean,
+      debugId: String,
+      chartDays: { type: Number, default: 30 },
+    },
     newFollowers: [
       {
         user: { type: String, ref: "TwitterUser" },

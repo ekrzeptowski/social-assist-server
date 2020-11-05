@@ -106,15 +106,30 @@ router.get("/following", requireJwtAuth, async (req, res) => {
 
 router.get("/history", requireJwtAuth, async (req, res) => {
   const settings = req.user.settings;
+  const now = new Date();
   try {
-    const user = settings.debug
-      ? await User.findOne({ twitterId: settings.debugId })
-      : await User.findById(
-          req.user._id,
-          "followersHistory.date followersHistory.followers"
-        );
+    const followersHistory = await User.aggregate([
+      {
+        $match: settings.debug
+          ? { twitterId: settings.debugId }
+          : { _id: req.user._id },
+      },
+      { $unwind: "$followersHistory" },
+      { $replaceRoot: { newRoot: "$followersHistory" } },
+      {
+        $match: settings.chartDays
+          ? {
+              date: {
+                $gte: new Date(
+                  new Date().setDate(now.getDate() - settings?.chartDays)
+                ),
+              },
+            }
+          : {},
+      },
+    ]);
 
-    res.json(user.followersHistory);
+    res.json(followersHistory);
   } catch (err) {
     res.status(500).json({ message: "Something went wrong." });
   }
