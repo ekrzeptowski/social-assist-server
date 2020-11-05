@@ -58,6 +58,10 @@ const userSchema = new Schema(
       },
     ],
     widgets: [{ component: String, dependencies: Array, layout: Object }],
+    tier: {
+      name: String,
+      expiry: Date,
+    },
   },
   { timestamps: true }
 );
@@ -74,6 +78,7 @@ userSchema.methods.toJSON = function () {
     createdAt: this.createdAt,
     updatedAt: this.updatedAt,
     settings: this.settings,
+    tier: this.tier,
   };
 };
 
