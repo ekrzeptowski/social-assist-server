@@ -1,5 +1,6 @@
 import passport from "passport";
 import { Strategy as TwitterStrategy } from "passport-twitter";
+import agenda from "../agenda/init";
 
 import User from "../models/User";
 
@@ -32,6 +33,7 @@ const twitterLogin = new TwitterStrategy(
         profileImageUrl: profile._json.profile_image_url_https,
       }).save();
       if (newUser) {
+        agenda.every("24 hours", "sync user data", { id: newUser._id });
         done(null, newUser);
       }
     } else {
@@ -42,7 +44,18 @@ const twitterLogin = new TwitterStrategy(
       currentUser.name = profile._json.name;
       currentUser.screenName = profile._json.screen_name;
       currentUser.save();
+      const jobs = await agenda.jobs({
+        name: "sync user data",
+        "data.id": currentUser._id,
+      });
+      if (jobs.length === 0) {
+        const job = agenda.create("sync user data", { id: currentUser._id });
+        job.unique({ "data.id": currentUser._id });
+        job.repeatEvery("24 hours", { skipImmediate: true });
+        await job.save();
+      }
     }
+
     // console.log(token, tokenSecret, done);
 
     done(null, currentUser);

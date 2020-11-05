@@ -8,10 +8,12 @@
   },
   "scripts": {
     "start-prod": "npm run build && node ./build/index.js",
+    "start-agenda": "node ./build/worker.js",
     "build": "npm run clean && npm run build-babel",
     "clean": "rm -rf build && mkdir build",
     "build-babel": "babel -d ./build ./src -s",
     "start-dev": "node --exec babel-node src/index.js",
+    "start-dev-agenda": "nodemon --exec babel-node src/worker.js",
     "server": "nodemon --exec babel-node src/index.js",
     "client": "npm start --prefix ../client",
     "dev": "concurrently \"npm run server\" \"npm run client\""
@@ -25,6 +27,8 @@
     "@babel/plugin-proposal-optional-chaining": "^7.11.0",
     "@babel/preset-env": "^7.11.0",
     "@babel/register": "^7.10.5",
+    "agenda": "^3.1.0",
+    "agendash2": "^0.8.1",
     "bcryptjs": "^2.4.3",
     "concurrently": "^5.3.0",
     "config": "^3.3.0",
