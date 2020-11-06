@@ -27,7 +27,14 @@ export async function sync({ req_user, socket }) {
 
   const twitterId = settings.debug ? settings.debugId : user.twitterId;
 
-  if (!user.fetchedAt || (new Date() - user.fetchedAt) / 36e5 > 12) {
+  if (
+    !user.fetchedAt ||
+    !user.syncPending &&
+    (new Date() - user.fetchedAt) / 36e5 > 12
+  ) {
+    user.syncPending = true;
+    user.save();
+
     const oldFollowers = await TwitterUser.find(
       {
         followingUsers: twitterId,
@@ -234,6 +241,9 @@ export async function sync({ req_user, socket }) {
         current.save();
       }
     }
+
+    user.syncPending = false;
+    user.save();
 
     socket?.forEach((connection) => {
       connection.send(

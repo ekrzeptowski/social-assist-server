@@ -34,6 +34,7 @@ const userSchema = new Schema(
     profileImageUrl: String,
     twitterId: String,
     fetchedAt: Date,
+    syncPending: { type: Boolean, default: false },
     followers: [{ type: String, ref: "TwitterUser" }],
     totalFollowers: Number,
     settings: {
