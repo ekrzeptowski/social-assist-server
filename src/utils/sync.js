@@ -4,7 +4,7 @@ import TwitterUser from "../models/TwitterUser";
 import { hydrateUsers } from "./hydrateUsers";
 import { getIds } from "./getIds";
 
-export async function sync({ req_user, socket }) {
+export async function sync({ req_user, socket, agenda }) {
   const settings = req_user.settings;
 
   const user = settings.debug
@@ -29,8 +29,10 @@ export async function sync({ req_user, socket }) {
 
   if (
     !user.fetchedAt ||
-    !user.syncPending &&
-    (new Date() - user.fetchedAt) / 36e5 > 12
+    agenda ||
+    (!user.syncPending &&
+      (new Date() - user.fetchedAt) / 36e5 >
+        (user.tier?.name === "Premium" ? 6 : 24))
   ) {
     user.syncPending = true;
     user.save();

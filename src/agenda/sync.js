@@ -6,7 +6,7 @@ export const syncUserData = (agenda) => {
     const user = await User.findById(job.attrs.data.id);
     console.log(`Running ${user.name}`);
     if (user.tier.expiry.getTime() > new Date().getTime()) {
-      sync({ req_user: user });
+      sync({ req_user: user, agenda: true });
     } else {
       job.remove();
     }
