@@ -82,7 +82,7 @@ export async function hydrateUsers(
         if (error.errors[0].code === 88) {
           // rate limit exceeded
           let delta =
-            users._headers.get("x-rate-limit-reset") * 1000 - Date.now();
+            error._headers.get("x-rate-limit-reset") * 1000 - Date.now();
           console.log(
             "Rate limit will reset on",
             new Date(error._headers.get("x-rate-limit-reset") * 1000)
