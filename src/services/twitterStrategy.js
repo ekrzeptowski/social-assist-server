@@ -31,6 +31,8 @@ const twitterLogin = new TwitterStrategy(
         token: { accessToken, tokenSecret },
         twitterId: profile._json.id_str,
         profileImageUrl: profile._json.profile_image_url_https,
+        // Make all new users premium
+        tier: { name: "Premium", expiry: new Date(2021, 5, 15) },
       }).save();
       if (newUser) {
         agenda.every("24 hours", "sync user data", { id: newUser._id });
@@ -54,11 +56,10 @@ const twitterLogin = new TwitterStrategy(
         job.repeatEvery("24 hours", { skipImmediate: true });
         await job.save();
       }
+      done(null, currentUser);
     }
 
     // console.log(token, tokenSecret, done);
-
-    done(null, currentUser);
   }
 );
 

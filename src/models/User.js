@@ -64,7 +64,7 @@ const userSchema = new Schema(
     ],
     widgets: [{ component: String, dependencies: Array, layout: Object }],
     tier: {
-      name: String,
+      name: { type: String, default: "Basic" },
       expiry: Date,
     },
   },
@@ -82,6 +82,7 @@ userSchema.methods.toJSON = function () {
     role: this.role,
     createdAt: this.createdAt,
     updatedAt: this.updatedAt,
+    fetchedAt: this.fetchedAt,
     settings: this.settings,
     tier: this.tier,
   };
