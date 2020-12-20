@@ -3,7 +3,10 @@ import passport from "passport";
 
 const router = Router();
 
-const CLIENT_HOME_PAGE_URL = "https://localhost:3000";
+const CLIENT_HOME_PAGE_URL =
+  process.env.NODE_ENV === "production"
+    ? "https://socialassist.ml"
+    : "https://localhost:3000";
 
 // when login is successful, retrieve user info
 router.get("/login/success", (req, res) => {

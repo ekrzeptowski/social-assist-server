@@ -13,7 +13,7 @@ const twitterLogin = new TwitterStrategy(
   {
     consumerKey: process.env.TWITTER_CONSUMER_KEY,
     consumerSecret: process.env.TWITTER_CONSUMER_SECRET,
-    callbackURL: "/auth/twitter/redirect",
+    callbackURL: process.env.NODE_ENV ? "https://socialassist.ml/auth/twitter/redirect" : "/auth/twitter/redirect",
   },
   async (accessToken, tokenSecret, profile, done) => {
     // find current user in UserModel
