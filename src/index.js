@@ -1,5 +1,6 @@
 import "dotenv/config";
 import session from "express-session";
+const MemoryStore = require("memorystore")(session);
 import express from "express";
 import mongoose from "mongoose";
 import http from "http";
@@ -19,6 +20,9 @@ const sessionParser = session({
   // name: "session",
   secret: process.env.COOKIE_KEY,
   resave: true,
+  store: new MemoryStore({
+    checkPeriod: 86400000, // prune expired entries every 24h
+  }),
   saveUninitialized: true,
   cookie: { maxAge: 24 * 60 * 60 * 100 },
 });
