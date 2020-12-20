@@ -35,7 +35,10 @@ const twitterLogin = new TwitterStrategy(
         tier: { name: "Premium", expiry: new Date(2021, 5, 15) },
       }).save();
       if (newUser) {
-        agenda.every("24 hours", "sync user data", { id: newUser._id });
+        const job = agenda.create("sync user data", { id: newUser._id });
+        job.unique({ "data.id": newUser._id });
+        job.repeatEvery("24 hours", { skipImmediate: true });
+        await job.save();
         done(null, newUser);
       }
     } else {
