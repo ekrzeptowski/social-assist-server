@@ -83,6 +83,13 @@ app.set("wss", wss);
 let id = 0;
 let lookup = {};
 app.locals.lookup = lookup;
+
+function noop() {}
+
+function heartbeat() {
+  this.isAlive = true;
+}
+
 server.on("upgrade", function (request, socket, head) {
   sessionParser(request, {}, () => {
     if (!request.session?.passport?.user) {
@@ -99,7 +106,16 @@ server.on("upgrade", function (request, socket, head) {
         lookup[ws.id] = new Set();
         lookup[ws.id].add(ws);
       }
+      ws.isAlive = true;
+      ws.on("pong", heartbeat);
+      const interval = setInterval(() => {
+        if (ws.isAlive === false) return ws.terminate();
+
+        ws.isAlive = false;
+        ws.ping(noop);
+      }, 30000);
       ws.on("close", () => {
+        clearInterval(interval);
         lookup[ws.id].delete(ws);
       });
     });
