@@ -2,7 +2,7 @@ module.exports = {
   apps: [
     {
       name: "social-assistant-api",
-      script: "npm -- run start-server",
+      script: "./build/index.js",
 
       // Options reference: https://pm2.keymetrics.io/docs/usage/application-declaration/
       // args: 'one two',
@@ -19,7 +19,7 @@ module.exports = {
     },
     {
       name: "social-assistant-agenda",
-      script: "npm -- run start-agenda",
+      script: "./build/worker.js",
 
       // Options reference: https://pm2.keymetrics.io/docs/usage/application-declaration/
       // args: 'one two',
